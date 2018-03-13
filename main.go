@@ -18,8 +18,7 @@ import (
 
 var (
 	Version string
-	Tree    string
-	Host    string
+	Host    = "pgbackup.com"
 )
 
 type Agent struct {
@@ -73,9 +72,8 @@ func main() {
 	} else if cmd == "recover" {
 		opts := &RecoverOpts{}
 		f := flag.NewFlagSet("recover", flag.ExitOnError)
+		f.StringVar(&opts.Target, "target", "latest", "Target to restore; 'latest' or [lsn]:[txid] or [lsn]:[txid]:[timeline]")
 		f.StringVar(&opts.Dir, "dir", "", "Directory where to load recovered cluster")
-		f.StringVar(&opts.Target, "target", "latest", "Target to restore; 'latest' or [lsn]:[txid]")
-		f.IntVar(&opts.Timeline, "timeline", 1, "Timeline to restore")
 		f.Parse(os.Args[2:])
 		if opts.Dir == "" {
 			f.PrintDefaults()
@@ -84,35 +82,27 @@ func main() {
 		a.ReadConfig()
 		a.Recover(opts)
 
-	} else if cmd == "test" {
-		opts := &TestOpts{}
-		f := flag.NewFlagSet("test", flag.ExitOnError)
-		f.StringVar(&opts.Db, "db", "", "Database to run test query on")
-		f.StringVar(&opts.User, "user", "", "User to run test query as")
-		f.StringVar(&opts.Query, "query", "", "Test query to run")
-		f.StringVar(&opts.Target, "target", "latest", "Target to restore; 'latest' or [lsn]:[txid]")
-		f.IntVar(&opts.Timeline, "timeline", 1, "Timeline to restore")
+	} else if cmd == "query" {
+		opts := &QueryOpts{}
+		f := flag.NewFlagSet("query", flag.ExitOnError)
+		f.StringVar(&opts.Target, "target", "latest", "Target to restore; 'latest' or [lsn]:[txid] or [lsn]:[txid]:[timeline]")
+		f.StringVar(&opts.Db, "db", "", "Database to run query on")
+		f.StringVar(&opts.User, "user", "", "User to run query as")
+		f.StringVar(&opts.Query, "query", "", "Query to run")
 		f.Parse(os.Args[2:])
 		if opts.Db == "" || opts.User == "" || opts.Query == "" {
 			f.PrintDefaults()
 			os.Exit(2)
 		}
 		a.ReadConfig()
-		a.Test(opts)
+		a.Query(opts)
 
 	} else if cmd == "restore_command" {
 		a.readConfig(os.Args[2])
 		a.RestoreCommand(os.Args[3], os.Args[4])
 
 	} else {
-		log.Fatal("usage: pgbackup [setup|agent|status|recover|test|dumptable]")
-	}
-}
-
-func init() {
-	Host = "pgbackup.com"
-	if Tree == "emiel" {
-		Host = "dev.pgbackup.com:10000"
+		log.Fatal("usage: pgbackup [setup|install|agent|status|recover|query|dumptable]")
 	}
 }
 
